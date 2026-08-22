@@ -65,16 +65,51 @@ VeraCrypt builds each module in a temporary directory and embeds it at
 `VeraCrypt.app/Contents/Resources/EncryptionModules`. The modules are then
 included in the PKG and DMG.
 
-The same VeraCrypt-owned builder emits `.so` modules on Linux and FreeBSD:
+On Linux, the regular and no-SSE2 build scripts accept the same repeatable `-m` flag and embed the generated `.so` in the installer and AppImage:
+
+```sh
+sudo ./src/Build/build_veracrypt_linux.sh -m /path/to/algorithm
+sudo ./src/Build/build_veracrypt_linux_no_sse2.sh -m /path/to/algorithm
+```
+
+For a module-only development build, use:
 
 ```sh
 ./src/Build/build_external_encryption_modules.sh /tmp/modules /path/to/algorithm
-make VC_EXTERNAL_MODULE_DIR=/tmp/modules
-make package VC_EXTERNAL_MODULE_DIR=/tmp/modules
 ```
 
-Linux packages place modules in `usr/lib/veracrypt/encryption-modules`;
-FreeBSD packages use `usr/local/lib/veracrypt/encryption-modules`.
+Linux packages and AppImages place modules in `usr/lib/veracrypt/encryption-modules`; FreeBSD packages use `usr/local/lib/veracrypt/encryption-modules`.
+
+### Windows static-link build
+
+Windows volume I/O runs inside the signed `veracrypt.sys` kernel driver, so
+the Unix dynamic-library loader is not used. Instead, one private external
+cipher source tree is compiled into Mount, Format, ExpandVolume, and Driver in
+the same solution build:
+
+```powershell
+.\src\Build\build_veracrypt_windows.ps1 `
+  -ExternalModule C:\private\mkc4 `
+  -ExternalCipherName MKC4B `
+  -Configuration Release `
+  -Platform x64
+```
+
+The equivalent direct MSBuild properties are:
+
+```powershell
+msbuild .\src\VeraCrypt.sln /m /t:Build `
+  /p:Configuration=Release /p:Platform=x64 `
+  /p:VCExternalModuleSourceDir=C:\private\mkc4 `
+  /p:VCExternalCipherName=MKC4B
+```
+
+The Windows v1 integration supports exactly one static external cipher per
+build. Its adapter must be `src\veracrypt_cipher_adapter.c`, its context must
+not exceed 4096 bytes, and its ABI self-test must pass. It is available only
+for non-system volumes; boot/system encryption remains unchanged. The
+resulting `.exe` and `veracrypt.sys` files must be signed and distributed
+together because all consumers must use the same cipher registry.
 
 ## Operational requirements
 

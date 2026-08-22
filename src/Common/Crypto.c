@@ -33,6 +33,13 @@
 #include "Volumes.h"
 #include "cpu.h"
 
+#if defined (VC_STATIC_EXTERNAL_CIPHER) && !defined (TC_WINDOWS_BOOT)
+#include "../Volume/ExternalCipherAdapter.h"
+#ifndef VC_STATIC_EXTERNAL_CIPHER_NAME
+#define VC_STATIC_EXTERNAL_CIPHER_NAME L"External"
+#endif
+#endif
+
 #pragma warning (disable:4706) // assignment within conditional expression
 /* Update the following when adding a new cipher or EA:
 
@@ -69,6 +76,9 @@ static Cipher Ciphers[] =
 	{ TWOFISH,	L"Twofish",		16,			32,			TWOFISH_KS			},
 	{ CAMELLIA,	L"Camellia",	16,			32,			CAMELLIA_KS			},
 	{ KUZNYECHIK,	L"Kuznyechik",16,		32,			KUZNYECHIK_KS },
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	{ EXTERNAL_CIPHER, VC_STATIC_EXTERNAL_CIPHER_NAME, 16, 32, VC_STATIC_EXTERNAL_CIPHER_MAX_CONTEXT },
+#endif
 #endif
 #endif
 	{ 0,		0,				0,			0,			0					}
@@ -99,6 +109,9 @@ static EncryptionAlgorithm EncryptionAlgorithms[] =
 	{ { SERPENT, CAMELLIA,		0 }, { XTS, 0 },	0, 1 },
 	{ { AES, KUZNYECHIK,		0 }, { XTS, 0 },	0, 1 },
 	{ { CAMELLIA, SERPENT, KUZNYECHIK,	0 }, { XTS, 0 },	0, 1 },
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	{ { EXTERNAL_CIPHER,			0 }, { XTS, 0 },	0, 1 },
+#endif
 #endif
 	{ { 0,							0 }, { 0,    0},	0, 0 }		// Must be all-zero
 
@@ -180,6 +193,24 @@ int CipherInit (int cipher, unsigned char *key, unsigned __int8 *ks)
 #endif // !defined(TC_WINDOWS_BOOT)
 
 #endif
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	case EXTERNAL_CIPHER:
+		if (VeraCryptExternalCipherAdapter.struct_size < sizeof (VeraCryptExternalCipherAdapterV1)
+			|| VeraCryptExternalCipherAdapter.magic != VC_EXTERNAL_CIPHER_ADAPTER_MAGIC
+			|| VeraCryptExternalCipherAdapter.adapter_version != VC_EXTERNAL_CIPHER_ADAPTER_API_V1
+			|| VeraCryptExternalCipherAdapter.block_size != 16
+			|| VeraCryptExternalCipherAdapter.key_size != 32
+			|| VeraCryptExternalCipherAdapter.context_size == 0
+			|| VeraCryptExternalCipherAdapter.context_size > VC_STATIC_EXTERNAL_CIPHER_MAX_CONTEXT
+			|| !VeraCryptExternalCipherAdapter.self_test
+			|| !VeraCryptExternalCipherAdapter.set_key
+			|| !VeraCryptExternalCipherAdapter.encrypt_block
+			|| !VeraCryptExternalCipherAdapter.decrypt_block
+			|| VeraCryptExternalCipherAdapter.self_test() != 1
+			|| VeraCryptExternalCipherAdapter.set_key (ks, key, 32) != 1)
+			return ERR_CIPHER_INIT_FAILURE;
+		break;
+#endif
 	default:
 		// Unknown/wrong cipher ID
 		return ERR_CIPHER_INIT_FAILURE;
@@ -210,6 +241,17 @@ void EncipherBlock(int cipher, void *data, void *ks)
 #if !defined(TC_WINDOWS_BOOT)
 	case KUZNYECHIK:		kuznyechik_encrypt_block(data, data, ks); break;
 #endif // !defined(TC_WINDOWS_BOOT) 
+#endif
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	case EXTERNAL_CIPHER:
+		{
+			unsigned char output[16];
+			if (VeraCryptExternalCipherAdapter.encrypt_block (ks, (const uint8_t *) data, output) != 1)
+				TC_THROW_FATAL_EXCEPTION;
+			memcpy (data, output, sizeof (output));
+			memset (output, 0, sizeof (output));
+		}
+		break;
 #endif
 	default:			TC_THROW_FATAL_EXCEPTION;	// Unknown/wrong ID
 	}
@@ -302,6 +344,17 @@ void DecipherBlock(int cipher, void *data, void *ks)
 
 #else
 	case AES:		aes_decrypt (data, data, ks); break;
+#endif
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	case EXTERNAL_CIPHER:
+		{
+			unsigned char output[16];
+			if (VeraCryptExternalCipherAdapter.decrypt_block (ks, (const uint8_t *) data, output) != 1)
+				TC_THROW_FATAL_EXCEPTION;
+			memcpy (data, output, sizeof (output));
+			memset (output, 0, sizeof (output));
+		}
+		break;
 #endif
 	default:		TC_THROW_FATAL_EXCEPTION;	// Unknown/wrong ID
 	}

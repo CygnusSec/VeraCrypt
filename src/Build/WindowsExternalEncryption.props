@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="&apos;$(VCExternalModuleSourceDir)&apos; != &apos;&apos;">
+    <VCExternalCipherName Condition="&apos;$(VCExternalCipherName)&apos; == &apos;&apos;">External</VCExternalCipherName>
+    <VCExternalModuleSourceDir>$([System.IO.Path]::GetFullPath(&apos;$(VCExternalModuleSourceDir)&apos;))</VCExternalModuleSourceDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="&apos;$(VCExternalModuleSourceDir)&apos; != &apos;&apos;">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(VCExternalModuleSourceDir)\src;$(SolutionDir)Volume;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>VC_STATIC_EXTERNAL_CIPHER;VC_STATIC_EXTERNAL_CIPHER_MAX_CONTEXT=4096;VC_STATIC_EXTERNAL_CIPHER_NAME=L&quot;$(VCExternalCipherName)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>$(VCExternalModuleCFlags) %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup Condition="&apos;$(VCExternalModuleSourceDir)&apos; != &apos;&apos;">
+    <ClCompile Include="$(VCExternalModuleSourceDir)\src\*.c" Exclude="$(VCExternalModuleSourceDir)\src\veracrypt_module.c" />
+    <ClCompile Include="$(VCExternalModuleSourceDir)\src\*.cc;$(VCExternalModuleSourceDir)\src\*.cpp" />
+  </ItemGroup>
+  <Target Name="ValidateVCExternalEncryptionModule" BeforeTargets="ClCompile" Condition="&apos;$(VCExternalModuleSourceDir)&apos; != &apos;&apos;">
+    <Error Condition="!Exists(&apos;$(VCExternalModuleSourceDir)\src\veracrypt_cipher_adapter.c&apos;)" Text="VC external module adapter not found: $(VCExternalModuleSourceDir)\src\veracrypt_cipher_adapter.c" />
+    <Message Importance="high" Text="Static-linking VC external encryption module from $(VCExternalModuleSourceDir)" />
+  </Target>
+</Project>

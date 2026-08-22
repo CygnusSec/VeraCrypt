@@ -615,6 +615,7 @@ copy $(TargetPath) "..\Debug\Setup Files\VeraCryptExpander-arm64.exe" &gt;NUL:
       <Project>{e4c40f94-e7f9-4981-86e4-186b46f993f3}</Project>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="..\Build\WindowsExternalEncryption.props" Condition="'$(VCExternalModuleSourceDir)' != ''" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

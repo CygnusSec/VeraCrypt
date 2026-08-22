@@ -650,6 +650,9 @@ void CipherInit2(int cipher, void* key, void* ks)
 	case TWOFISH:
 	case CAMELLIA:
 	case KUZNYECHIK:
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	case EXTERNAL_CIPHER:
+#endif
 		CipherInit(cipher,key,ks);
 		break;
 	default:
@@ -1277,7 +1280,11 @@ BOOL TestSectorBufEncryption (PCRYPTO_INFO ci)
 
 		nTestsPerformed++;
 	}
+#ifdef VC_STATIC_EXTERNAL_CIPHER
+	return (nTestsPerformed == 155);
+#else
 	return (nTestsPerformed == 150);
+#endif
 }
 
 static BOOL DoAutoTestAlgorithms (void)

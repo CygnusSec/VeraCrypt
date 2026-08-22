@@ -611,6 +611,7 @@ copy $(OutDir)veracrypt.inf "$(SolutionDir)Debug\Setup Files\veracrypt.inf"</Com
   <ItemGroup>
     <ResourceCompile Include="..\Driver\Driver.rc" />
   </ItemGroup>
+  <Import Project="..\Build\WindowsExternalEncryption.props" Condition="'$(VCExternalModuleSourceDir)' != ''" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
