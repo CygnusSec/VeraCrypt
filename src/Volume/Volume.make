@@ -21,6 +21,7 @@ OBJS += Cipher.o
 OBJS += EncryptionAlgorithm.o
 OBJS += EncryptionMode.o
 OBJS += EncryptionTest.o
+OBJS += ExternalEncryptionModule.o
 OBJS += EncryptionThreadPool.o
 OBJS += Hash.o
 OBJS += Keyfile.o

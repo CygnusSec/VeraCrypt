@@ -11,6 +11,7 @@
 */
 
 #include "EncryptionAlgorithm.h"
+#include "ExternalEncryptionModule.h"
 #include "EncryptionModeXTS.h"
 #ifdef WOLFCRYPT_BACKEND
 #include "EncryptionModeWolfCryptXTS.h"
@@ -80,6 +81,10 @@ namespace VeraCrypt
 		l.push_back (shared_ptr <EncryptionAlgorithm> (new SerpentAES ()));
 		l.push_back (shared_ptr <EncryptionAlgorithm> (new SerpentTwofishAES ()));
 		l.push_back (shared_ptr <EncryptionAlgorithm> (new TwofishSerpent ()));
+		const vector < shared_ptr <ExternalEncryptionModule> > &modules =
+			ExternalEncryptionModule::GetAvailableModules ();
+		for (size_t i = 0; i < modules.size(); ++i)
+			l.push_back (shared_ptr <EncryptionAlgorithm> (new ExternalEncryptionAlgorithm (modules[i])));
         #endif
 		return l;
 	}
@@ -379,6 +384,18 @@ namespace VeraCrypt
 		Ciphers.push_back (shared_ptr <Cipher> (new CipherCamellia ()));
 
 		SupportedModes.push_back (shared_ptr <EncryptionMode> (new EncryptionModeXTS ()));
+	}
+
+	ExternalEncryptionAlgorithm::ExternalEncryptionAlgorithm (shared_ptr <ExternalEncryptionModule> module)
+		: Module (module)
+	{
+		Ciphers.push_back (shared_ptr <Cipher> (new CipherExternal (Module)));
+		SupportedModes.push_back (shared_ptr <EncryptionMode> (new EncryptionModeXTS ()));
+	}
+
+	shared_ptr <EncryptionAlgorithm> ExternalEncryptionAlgorithm::GetNew () const
+	{
+		return shared_ptr <EncryptionAlgorithm> (new ExternalEncryptionAlgorithm (Module));
 	}
 
 #endif

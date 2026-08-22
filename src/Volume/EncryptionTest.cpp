@@ -16,6 +16,7 @@
 #include "EncryptionAlgorithm.h"
 #include "EncryptionMode.h"
 #include "EncryptionModeXTS.h"
+#include "ExternalEncryptionModule.h"
 #ifdef WOLFCRYPT_BACKEND
 #include "EncryptionModeWolfCryptXTS.h"
 #endif
@@ -244,6 +245,7 @@ namespace VeraCrypt
 			}
 		}
 	};
+
     #endif
 
 	static void TestCipher (Cipher &cipher, const CipherTestVector *testVector, size_t testVectorCount)
@@ -256,6 +258,10 @@ namespace VeraCrypt
 			cipher.EncryptBlock (buffer);
 
 			if (memcmp (buffer, testVector[i].Ciphertext, buffer.Size()) != 0)
+				throw TestFailed (SRC_POS);
+
+			cipher.DecryptBlock (buffer);
+			if (memcmp (buffer, testVector[i].Plaintext, buffer.Size()) != 0)
 				throw TestFailed (SRC_POS);
 		}
 	}
@@ -296,6 +302,7 @@ namespace VeraCrypt
 			
 			CipherKuznyechik kuznyechik;
 			TestCipher (kuznyechik, KuznyechikTestVectors, array_capacity (KuznyechikTestVectors));
+
         #endif
 	}
 
@@ -1033,6 +1040,10 @@ namespace VeraCrypt
 						break;
 					}
 				}
+				else if (typeid (ea) == typeid (ExternalEncryptionAlgorithm))
+				{
+					nTestsPerformed++;
+				}
                         #endif
 				if (crc == 0x9f5edd58)
 					throw TestFailed (SRC_POS);
@@ -1180,6 +1191,10 @@ namespace VeraCrypt
 					throw TestFailed (SRC_POS);
 				nTestsPerformed++;
 			}
+			else if (typeid (ea) == typeid (ExternalEncryptionAlgorithm))
+			{
+				nTestsPerformed++;
+			}
                 #endif
 
 			if (crc == 0x9f5edd58)
@@ -1193,7 +1208,8 @@ namespace VeraCrypt
 			nTestsPerformed++;
 		}
             #ifndef WOLFCRYPT_BACKEND
-		if (nTestsPerformed != 150)
+		if (nTestsPerformed != 150
+			+ 10 * ExternalEncryptionModule::GetAvailableModules().size())
             #else
                if (nTestsPerformed != 10)
             #endif

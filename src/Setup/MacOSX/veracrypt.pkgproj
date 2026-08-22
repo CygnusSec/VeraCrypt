@@ -1025,7 +1025,7 @@ https://macfuse.github.io/
 				</dict>
 			</array>
 			<key>NAME</key>
-			<string>VeraCrypt 1.26.30</string>
+			<string>VeraCrypt 1.26.24</string>
 			<key>PAYLOAD_ONLY</key>
 			<false/>
 			<key>TREAT_MISSING_PRESENTATION_DOCUMENTS_AS_WARNING</key>

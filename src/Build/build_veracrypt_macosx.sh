@@ -18,7 +18,7 @@ SOURCEPATH=$(cd "$(dirname "$SCRIPTPATH/../.")" && pwd)
 PARENTDIR=$(cd "$(dirname "$SCRIPTPATH/../../../.")" && pwd)
 
 # Default wxWidgets version
-DEFAULT_WX_VERSION="3.2.10"
+DEFAULT_WX_VERSION="3.3.3.1"
 WX_VERSION="$DEFAULT_WX_VERSION"
 
 # Default macOS deployment target for wxWidgets source builds
@@ -30,26 +30,32 @@ brew=false
 package=false
 fuset=false
 local_build=false
+clean_build=false
+external_module_sources=()
+external_module_build_dir=""
 
 # Function to display usage information
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "  -b           Use Homebrew to build with precompiled packages"
+    echo "  -c           Clean before building (default: incremental build)"
     echo "  -p           Create a package after building"
     echo "  -f           Build with FUSE-T support"
     echo "  -l           Use local wxWidgets and disable universal binaries"
-    echo "  -t <target>  Set VC_OSX_TARGET (default: $DEFAULT_OSX_TARGET; SDK with -b)"
+    echo "  -m <dir>     Build and embed an external encryption module source tree"
+    echo "               (repeat -m to include multiple modules)"
     echo "  -v <version> Specify wxWidgets version (default: $DEFAULT_WX_VERSION)"
     echo "  -h           Display this help message"
     exit 1
 }
 
 # Parse command-line options
-while getopts "bpflt:v:h" flag
+while getopts "bcpflm:v:h" flag
 do
     case "${flag}" in
         b) brew=true;;
+        c) clean_build=true;;
         p) package=true;;
         f) fuset=true;;
         l) local_build=true;;
@@ -60,6 +66,7 @@ do
             fi
             OSX_TARGET=${OPTARG}
             ;;
+        m) external_module_sources+=("${OPTARG}");;
         v)
             if [ -z "$OPTARG" ]; then
                 echo "Error: -v requires a version argument."
@@ -71,6 +78,21 @@ do
         *) usage;;
     esac
 done
+
+if [ "${#external_module_sources[@]}" -gt 0 ]; then
+    for external_module_source in "${external_module_sources[@]}"; do
+        if [ ! -d "$external_module_source/src" ]; then
+            echo "Error: External module source directory does not exist: $external_module_source/src"
+            exit 1
+        fi
+    done
+    external_module_build_dir=$(mktemp -d "${TMPDIR:-/tmp}/veracrypt-modules.XXXXXX")
+    trap 'rm -rf "$external_module_build_dir"' EXIT
+    "$SCRIPTPATH/build_external_encryption_modules.sh" \
+        "$external_module_build_dir" "${external_module_sources[@]}"
+    export VC_EXTERNAL_MODULE_DIR=$external_module_build_dir
+    echo "Embedding built external encryption modules from $VC_EXTERNAL_MODULE_DIR"
+fi
 
 export VC_OSX_FUSET=$([ "$fuset" = true ] && echo 1 || echo 0)
 
@@ -86,7 +108,8 @@ if [ "$brew" = true ]; then
         exit 1
     fi
 
-    export VC_OSX_SDK=$(xcrun --show-sdk-version) # use the latest version installed, this might fail
+    unset SDKROOT
+    export VC_OSX_SDK=$(xcrun --sdk macosx --show-sdk-version)
     export VC_OSX_TARGET=${OSX_TARGET:-${VC_OSX_SDK}}
     echo "Using MacOSX SDK $VC_OSX_SDK with target set to $VC_OSX_TARGET"
     cd "$SOURCEPATH"
@@ -101,7 +124,14 @@ if [ "$brew" = true ]; then
     export CPU_ARCH=$(uname -m)
     export AS=$(which yasm)
     export COMPILE_ASM=$( if [[ "$CPU_ARCH" != "arm64" ]]; then echo true; else echo false; fi )
-    make clean
+    export NOTEST=1
+    export NOSTRIP=1
+    if [ "$clean_build" = true ]; then
+        echo "Cleaning previous build"
+        make clean
+    else
+        echo "Using incremental build; pass -c to clean first"
+    fi
     make
     if [ "$package" = true ]; then
         make package
