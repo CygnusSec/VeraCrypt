@@ -17,6 +17,7 @@
 #include "Crypto/Twofish.h"
 #include "Crypto/Camellia.h"
 #include "Crypto/kuznyechik.h"
+#include "ExternalEncryptionModule.h"
 
 #ifdef TC_AES_HW_CPU
 #	include "Crypto/Aes_hw_cpu.h"
@@ -99,6 +100,10 @@ namespace VeraCrypt
 		l.push_back (shared_ptr <Cipher> (new CipherTwofish ()));
 		l.push_back (shared_ptr <Cipher> (new CipherCamellia ()));
 		l.push_back (shared_ptr <Cipher> (new CipherKuznyechik ()));
+		const vector < shared_ptr <ExternalEncryptionModule> > &modules =
+			ExternalEncryptionModule::GetAvailableModules ();
+		for (size_t i = 0; i < modules.size(); ++i)
+			l.push_back (shared_ptr <Cipher> (new CipherExternal (modules[i])));
         #endif
 		return l;
 	}
@@ -517,6 +522,52 @@ namespace VeraCrypt
 #else
 		return false;
 #endif
+	}
+
+	CipherExternal::CipherExternal (shared_ptr <ExternalEncryptionModule> module)
+		: Module (module)
+	{
+	}
+
+	void CipherExternal::Decrypt (uint8 *data) const
+	{
+		if (Module->GetDescriptor().decrypt_block (ScheduledKey.Ptr(), data, data) != 1)
+			throw CipherInitError (SRC_POS);
+	}
+
+	void CipherExternal::Encrypt (uint8 *data) const
+	{
+		if (Module->GetDescriptor().encrypt_block (ScheduledKey.Ptr(), data, data) != 1)
+			throw CipherInitError (SRC_POS);
+	}
+
+	size_t CipherExternal::GetScheduledKeySize () const
+	{
+		return Module->GetDescriptor().context_size;
+	}
+
+	void CipherExternal::SetCipherKey (const uint8 *key)
+	{
+		if (Module->GetDescriptor().set_key (ScheduledKey.Ptr(), key, GetKeySize()) != 1)
+			throw CipherInitError (SRC_POS);
+	}
+
+	size_t CipherExternal::GetBlockSize () const { return Module->GetDescriptor().block_size; }
+	size_t CipherExternal::GetKeySize () const { return Module->GetDescriptor().key_size; }
+	wstring CipherExternal::GetName () const { return Module->GetName(); }
+	shared_ptr <Cipher> CipherExternal::GetNew () const
+	{
+		return shared_ptr <Cipher> (new CipherExternal (Module));
+	}
+
+	void CipherExternal::EncryptBlocks (uint8 *data, size_t blockCount) const
+	{
+		Cipher::EncryptBlocks (data, blockCount);
+	}
+
+	void CipherExternal::DecryptBlocks (uint8 *data, size_t blockCount) const
+	{
+		Cipher::DecryptBlocks (data, blockCount);
 	}
 
     #endif	

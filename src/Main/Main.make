@@ -239,6 +239,11 @@ endif
 	cp $(BASE_DIR)/Resources/Icons/VeraCrypt_Volume.icns $(APPNAME).app/Contents/Resources
 	cp -R $(BASE_DIR)/../doc/html/* $(APPNAME).app/Contents/Resources/doc/HTML
 	cp $(BASE_DIR)/../Translations/* $(APPNAME).app/Contents/Resources/languages
+	-rm -rf "$(APPNAME).app/Contents/Resources/EncryptionModules"
+ifneq "$(strip $(VC_EXTERNAL_MODULE_DIR))" ""
+	mkdir -p "$(APPNAME).app/Contents/Resources/EncryptionModules"
+	find "$(VC_EXTERNAL_MODULE_DIR)" -maxdepth 1 -type f -name '*.dylib' -exec cp {} "$(APPNAME).app/Contents/Resources/EncryptionModules/" \;
+endif
 
 	echo -n APPLTRUE >$(APPNAME).app/Contents/PkgInfo
 ifdef VC_LEGACY_BUILD
@@ -303,6 +308,10 @@ prepare: $(APPNAME)
 	cp -R $(BASE_DIR)/../doc/html/* "$(BASE_DIR)/Setup/Linux/usr/share/doc/$(APPNAME)/HTML"
 	mkdir -p $(BASE_DIR)/Setup/Linux/usr/share/veracrypt/languages
 	cp -r $(BASE_DIR)/../Translations/* $(BASE_DIR)/Setup/Linux/usr/share/veracrypt/languages/
+ifneq "$(strip $(VC_EXTERNAL_MODULE_DIR))" ""
+	mkdir -p $(BASE_DIR)/Setup/Linux/usr/lib/veracrypt/encryption-modules
+	find "$(VC_EXTERNAL_MODULE_DIR)" -maxdepth 1 -type f -name '*.so' -exec cp {} $(BASE_DIR)/Setup/Linux/usr/lib/veracrypt/encryption-modules/ \;
+endif
 
 	mkdir -p $(BASE_DIR)/Setup/Linux/usr/sbin
 	cp $(BASE_DIR)/Setup/Linux/mount.$(APPNAME) $(BASE_DIR)/Setup/Linux/usr/sbin/mount.$(APPNAME)
@@ -400,6 +409,10 @@ prepare: $(APPNAME)
 	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/bin
 	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/share/doc/$(APPNAME)/HTML
 	cp $(BASE_DIR)/Main/$(APPNAME) $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)
+ifneq "$(strip $(VC_EXTERNAL_MODULE_DIR))" ""
+	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/local/lib/veracrypt/encryption-modules
+	find "$(VC_EXTERNAL_MODULE_DIR)" -maxdepth 1 -type f -name '*.so' -exec cp {} $(BASE_DIR)/Setup/FreeBSD/usr/local/lib/veracrypt/encryption-modules/ \;
+endif
 	cp $(BASE_DIR)/Setup/FreeBSD/$(APPNAME)-uninstall.sh $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)-uninstall.sh
 	chmod +x $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)-uninstall.sh
 	cp $(BASE_DIR)/License.txt $(BASE_DIR)/Setup/FreeBSD/usr/share/doc/$(APPNAME)/License.txt

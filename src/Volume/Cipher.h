@@ -19,6 +19,7 @@
 namespace VeraCrypt
 {
 	class Cipher;
+	class ExternalEncryptionModule;
 	typedef vector < shared_ptr <Cipher> > CipherList;
 
 	class Cipher
@@ -148,6 +149,28 @@ namespace VeraCrypt
 	TC_CIPHER (Twofish, 16, 32);
 	TC_CIPHER (Camellia, 16, 32);
 	TC_CIPHER (Kuznyechik, 16, 32);
+
+	class CipherExternal : public Cipher
+	{
+	public:
+		explicit CipherExternal (shared_ptr <ExternalEncryptionModule> module);
+		virtual ~CipherExternal () { }
+		virtual size_t GetBlockSize () const;
+		virtual size_t GetKeySize () const;
+		virtual wstring GetName () const;
+		virtual shared_ptr <Cipher> GetNew () const;
+		virtual void DecryptBlocks (uint8 *data, size_t blockCount) const;
+		virtual void EncryptBlocks (uint8 *data, size_t blockCount) const;
+
+	protected:
+		virtual void Decrypt (uint8 *data) const;
+		virtual void Encrypt (uint8 *data) const;
+		virtual size_t GetScheduledKeySize () const;
+		virtual void SetCipherKey (const uint8 *key);
+
+	private:
+		shared_ptr <ExternalEncryptionModule> Module;
+	};
 
 #undef TC_CIPHER_ADD_METHODS
 #define TC_CIPHER_ADD_METHODS

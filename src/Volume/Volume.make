@@ -21,6 +21,7 @@ OBJS += Cipher.o
 OBJS += EncryptionAlgorithm.o
 OBJS += EncryptionMode.o
 OBJS += EncryptionTest.o
+OBJS += ExternalEncryptionModule.o
 OBJS += EncryptionThreadPool.o
 OBJS += Hash.o
 OBJS += Keyfile.o
@@ -58,7 +59,13 @@ ifneq "$(COMPILE_ASM)" "false"
 	OBJSEX += ../Crypto/sha512_avx1.oo
 	OBJSEX += ../Crypto/sha512_avx2.oo
 	OBJSEX += ../Crypto/sha512_sse4.oo
-endif
+	else ifeq "$(CPU_ARCH)" "arm64"
+	OBJARMV8CRYPTO += ../Crypto/Aes_hw_armv8.oarmv8crypto
+	OBJS += ../Crypto/Aescrypt.o
+	OBJARMV8CRYPTO += ../Crypto/sha256_armv8.oarmv8crypto
+	else
+	OBJS += ../Crypto/Aescrypt.o
+	endif
 else ifeq "$(CPU_ARCH)" "x86"
 	OBJS += ../Crypto/Aes_x86.o
 	ifeq "$(DISABLE_AESNI)" "0"
@@ -89,6 +96,11 @@ else
 	OBJS += ../Crypto/Aescrypt.o
 endif
 
+ifeq "$(PLATFORM):$(LOCAL_DEVELOPMENT_BUILD):$(CPU_ARCH)" "MacOSX:true:arm64"
+	OBJS += ../Crypto/blake2s_SSE41.o
+	OBJS += ../Crypto/blake2s_SSSE3.o
+	OBJS += ../Crypto/Sha2Intel.o
+else
 ifeq "$(GCC_GTEQ_430)" "1"
 	OBJSSSE41 += ../Crypto/blake2s_SSE41.osse41
 	OBJSSSSE3 += ../Crypto/blake2s_SSSE3.ossse3
@@ -100,6 +112,7 @@ ifeq "$(GCC_GTEQ_500)" "1"
 	OBJSHANI += ../Crypto/Sha2Intel.oshani
 else
 	OBJS += ../Crypto/Sha2Intel.o
+endif
 endif
 else
 OBJS += ../Crypto/wolfCrypt.o

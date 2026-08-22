@@ -66,6 +66,18 @@ namespace VeraCrypt
 		EncryptionAlgorithm &operator= (const EncryptionAlgorithm &);
 	};
 
+	class ExternalEncryptionModule;
+	class ExternalEncryptionAlgorithm : public EncryptionAlgorithm
+	{
+	public:
+		explicit ExternalEncryptionAlgorithm (shared_ptr <ExternalEncryptionModule> module);
+		virtual ~ExternalEncryptionAlgorithm () { }
+		virtual shared_ptr <EncryptionAlgorithm> GetNew () const;
+
+	private:
+		shared_ptr <ExternalEncryptionModule> Module;
+	};
+
 #define TC_ENCRYPTION_ALGORITHM(NAME) \
 	class NAME : public EncryptionAlgorithm \
 	{ \
